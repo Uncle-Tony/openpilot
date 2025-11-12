@@ -20,7 +20,7 @@ TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
   bool has_custom_tuning = !params.get("LateralTuningParams").empty() && tuning_data.contains("kp");
 
   // Defaults from configure_torque_tune (code defaults)
-  double default_kp = 1.0, default_ki = 0.3, default_friction = 0.07, default_deadzone = 0.0;
+  double default_kp = 1.0, default_ki = 0.3, default_deadzone = 0.0;
 
   // Try to get defaults from car interface if car is installed
   auto cp_bytes = params.get("CarParamsPersistent");
@@ -33,11 +33,11 @@ TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
       auto torque = CP.getLateralTuning().getTorque();
       default_kp = torque.getKp();
       default_ki = torque.getKi();
-      default_friction = torque.getFriction();
       default_deadzone = torque.getSteeringAngleDeadzoneDeg();
     }
   }
   // If no car installed, use code defaults (so user can still see values)
+  // Note: Friction is dynamically managed by live torque learning, not tunable here
 
   // Proportional Gain (kp) - use temp param, sync to/from JSON
   kp_control = new OptionControlSP(
@@ -89,30 +89,8 @@ TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
   list->addItem(vertical_space());
   list->addItem(horizontal_line());
 
-  // Friction
-  friction_control = new OptionControlSP(
-    "LateralTuningFrictionTemp",
-    tr("Friction"),
-    tr("Provides resistance to lateral movement, reducing drift. Higher = less drift."),
-    "",
-    {5, 30},    // min: 0.05, max: 0.30 (scaled by 100)
-    1,          // step: 0.01 (scaled by 100)
-    false,
-    nullptr,
-    true,
-    false
-  );
-  // Always set a value
-  if (has_custom_tuning && tuning_data.contains("friction")) {
-    params.put("LateralTuningFrictionTemp", QString::number(tuning_data["friction"].toDouble(), 'f', 2).toStdString());
-  } else {
-    params.put("LateralTuningFrictionTemp", QString::number(default_friction, 'f', 2).toStdString());
-  }
-  QObject::connect(friction_control, &OptionControlSP::updateLabels, this, &TuningPanel::refreshLabels);
-  list->addItem(friction_control);
-
-  list->addItem(vertical_space());
-  list->addItem(horizontal_line());
+  // Note: Friction is dynamically managed by SunnyPilot's live torque learning
+  // and cannot be manually tuned via this menu
 
   // Steering Angle Deadzone
   deadzone_control = new OptionControlSP(
@@ -175,10 +153,6 @@ void TuningPanel::refreshLabels() {
     double ki_val = QString::fromStdString(params.get("LateralTuningKiTemp")).toDouble();
     ki_control->setLabel(QString::number(ki_val, 'f', 2));
   }
-  if (friction_control) {
-    double friction_val = QString::fromStdString(params.get("LateralTuningFrictionTemp")).toDouble();
-    friction_control->setLabel(QString::number(friction_val, 'f', 2));
-  }
   if (deadzone_control) {
     double deadzone_val = QString::fromStdString(params.get("LateralTuningDeadzoneTemp")).toDouble();
     deadzone_control->setLabel(QString::number(deadzone_val, 'f', 2));
@@ -193,10 +167,8 @@ void TuningPanel::updateJSONParam() {
   QJsonObject tuning_data = loadJSONParam();
 
   // Get values from temp params (controls write to these)
-  // If param is empty, use 0 (will be ignored, but we need valid numbers)
   QString kp_str = QString::fromStdString(params.get("LateralTuningKpTemp"));
   QString ki_str = QString::fromStdString(params.get("LateralTuningKiTemp"));
-  QString friction_str = QString::fromStdString(params.get("LateralTuningFrictionTemp"));
   QString deadzone_str = QString::fromStdString(params.get("LateralTuningDeadzoneTemp"));
 
   // Only update if values are set (non-empty)
@@ -206,12 +178,10 @@ void TuningPanel::updateJSONParam() {
   if (!ki_str.isEmpty()) {
     tuning_data["ki"] = ki_str.toDouble();
   }
-  if (!friction_str.isEmpty()) {
-    tuning_data["friction"] = friction_str.toDouble();
-  }
   if (!deadzone_str.isEmpty()) {
     tuning_data["deadzone"] = deadzone_str.toDouble();
   }
+  // Note: friction removed - it's dynamically managed by live torque learning
 
   // Save back to JSON param (matches BluePilot approach)
   QJsonDocument doc(tuning_data);
@@ -232,17 +202,13 @@ void TuningPanel::showEvent(QShowEvent *event) {
     if (tuning_data.contains("ki")) {
       params.put("LateralTuningKiTemp", QString::number(tuning_data["ki"].toDouble(), 'f', 2).toStdString());
     }
-    if (tuning_data.contains("friction")) {
-      params.put("LateralTuningFrictionTemp", QString::number(tuning_data["friction"].toDouble(), 'f', 2).toStdString());
-    }
     if (tuning_data.contains("deadzone")) {
       params.put("LateralTuningDeadzoneTemp", QString::number(tuning_data["deadzone"].toDouble(), 'f', 2).toStdString());
     }
   } else {
-    // Clear temp params so controls show blank
+    // Clear temp params so controls show defaults
     params.remove("LateralTuningKpTemp");
     params.remove("LateralTuningKiTemp");
-    params.remove("LateralTuningFrictionTemp");
     params.remove("LateralTuningDeadzoneTemp");
   }
 }
