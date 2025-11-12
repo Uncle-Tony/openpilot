@@ -48,6 +48,9 @@ class LatControlTorque(LatControl):
     self._last_kp = self.torque_params.kp
     self._last_ki = self.torque_params.ki
     self._last_deadzone = self.torque_params.steeringAngleDeadzoneDeg
+    self._last_kf = self.torque_params.kf
+    self._last_latAccelFactor = self.torque_params.latAccelFactor
+    self._last_latAccelOffset = self.torque_params.latAccelOffset
 
     self.extension = LatControlTorqueExt(self, CP, CP_SP, CI)
 
@@ -81,6 +84,24 @@ class LatControlTorque(LatControl):
         if 0.0 <= deadzone_val <= 0.5 and math.isfinite(deadzone_val):
           self.torque_params.steeringAngleDeadzoneDeg = deadzone_val
 
+      # Validate and apply kf (valid range: 0.8 to 1.2)
+      if "kf" in tuning_data:
+        kf_val = float(tuning_data["kf"])
+        if 0.8 <= kf_val <= 1.2 and math.isfinite(kf_val):
+          self.torque_params.kf = kf_val
+
+      # Validate and apply latAccelFactor (valid range: 2.5 to 3.2)
+      if "latAccelFactor" in tuning_data:
+        latAccelFactor_val = float(tuning_data["latAccelFactor"])
+        if 2.5 <= latAccelFactor_val <= 3.2 and math.isfinite(latAccelFactor_val):
+          self.torque_params.latAccelFactor = latAccelFactor_val
+
+      # Validate and apply latAccelOffset (valid range: -0.1 to 0.1)
+      if "latAccelOffset" in tuning_data:
+        latAccelOffset_val = float(tuning_data["latAccelOffset"])
+        if -0.1 <= latAccelOffset_val <= 0.1 and math.isfinite(latAccelOffset_val):
+          self.torque_params.latAccelOffset = latAccelOffset_val
+
     except (json.JSONDecodeError, ValueError, TypeError, KeyError):
       # Invalid JSON or values - use defaults
       pass
@@ -104,6 +125,9 @@ class LatControlTorque(LatControl):
         old_kp = self._last_kp
         old_ki = self._last_ki
         old_deadzone = self._last_deadzone
+        old_kf = self._last_kf
+        old_latAccelFactor = self._last_latAccelFactor
+        old_latAccelOffset = self._last_latAccelOffset
 
         # Reload params from JSON
         self._load_custom_tuning_params()
@@ -116,12 +140,26 @@ class LatControlTorque(LatControl):
           self._last_kp = self.torque_params.kp
           self._last_ki = self.torque_params.ki
 
+        # If kf changed, update PID feedforward gain
+        if self.torque_params.kf != old_kf:
+          self.pid.k_f = self.torque_params.kf
+          self._last_kf = self.torque_params.kf
+
         # Note: friction is dynamically managed by live torque learning, not from JSON
 
         # If deadzone changed, update it
         if self.torque_params.steeringAngleDeadzoneDeg != old_deadzone:
           self.steering_angle_deadzone_deg = self.torque_params.steeringAngleDeadzoneDeg
           self._last_deadzone = self.torque_params.steeringAngleDeadzoneDeg
+
+        # If latAccelFactor changed, update limits (affects torque conversion)
+        if self.torque_params.latAccelFactor != old_latAccelFactor:
+          self.update_limits()
+          self._last_latAccelFactor = self.torque_params.latAccelFactor
+
+        # If latAccelOffset changed, it's used directly in update() - no action needed
+        if self.torque_params.latAccelOffset != old_latAccelOffset:
+          self._last_latAccelOffset = self.torque_params.latAccelOffset
 
         self._param_check_counter = 0
 
