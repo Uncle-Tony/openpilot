@@ -21,6 +21,7 @@
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/longitudinal_panel.h"
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/osm_panel.h"
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/trips_panel.h"
+#include "selfdrive/ui/sunnypilot/qt/offroad/settings/tuning_panel.h"
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/vehicle_panel.h"
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/visuals_panel.h"
 
@@ -94,6 +95,7 @@ SettingsWindowSP::SettingsWindowSP(QWidget *parent) : SettingsWindow(parent) {
     PanelInfo("   " + tr("Vehicle"), new VehiclePanel(this), "../../sunnypilot/selfdrive/assets/offroad/icon_vehicle.png"),
     PanelInfo("   " + tr("Firehose"), new FirehosePanel(this), "../../sunnypilot/selfdrive/assets/offroad/icon_firehose.svg"),
     PanelInfo("   " + tr("Developer"), new DeveloperPanelSP(this), "../assets/icons/shell.png"),
+    PanelInfo("   " + tr("Tuning"), new TuningPanel(this), "../../sunnypilot/selfdrive/assets/offroad/icon_lateral.png"),
   };
 
   nav_btns = new QButtonGroup(this);
