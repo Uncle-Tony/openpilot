@@ -47,7 +47,6 @@ class LatControlTorque(LatControl):
     self._param_check_counter = 0
     self._last_kp = self.torque_params.kp
     self._last_ki = self.torque_params.ki
-    self._last_friction = self.torque_params.friction
     self._last_deadzone = self.torque_params.steeringAngleDeadzoneDeg
 
     self.extension = LatControlTorqueExt(self, CP, CP_SP, CI)
@@ -74,11 +73,7 @@ class LatControlTorque(LatControl):
         if 0.1 <= ki_val <= 1.0 and math.isfinite(ki_val):
           self.torque_params.ki = ki_val
 
-      # Validate and apply friction (valid range: 0.05 to 0.3)
-      if "friction" in tuning_data:
-        friction_val = float(tuning_data["friction"])
-        if 0.05 <= friction_val <= 0.3 and math.isfinite(friction_val):
-          self.torque_params.friction = friction_val
+      # Note: friction is dynamically managed by live torque learning, not tunable via JSON
 
       # Validate and apply deadzone (valid range: 0.0 to 0.5)
       if "deadzone" in tuning_data:
@@ -108,7 +103,6 @@ class LatControlTorque(LatControl):
       if self._param_check_counter >= 300:  # Check every 300 frames (like BluePilot)
         old_kp = self._last_kp
         old_ki = self._last_ki
-        old_friction = self._last_friction
         old_deadzone = self._last_deadzone
 
         # Reload params from JSON
@@ -122,10 +116,7 @@ class LatControlTorque(LatControl):
           self._last_kp = self.torque_params.kp
           self._last_ki = self.torque_params.ki
 
-        # If friction changed, update limits
-        if self.torque_params.friction != old_friction:
-          self.update_limits()
-          self._last_friction = self.torque_params.friction
+        # Note: friction is dynamically managed by live torque learning, not from JSON
 
         # If deadzone changed, update it
         if self.torque_params.steeringAngleDeadzoneDeg != old_deadzone:

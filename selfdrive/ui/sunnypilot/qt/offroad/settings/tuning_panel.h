@@ -25,7 +25,6 @@ private:
   ListWidget *list = nullptr;
   OptionControlSP *kp_control = nullptr;
   OptionControlSP *ki_control = nullptr;
-  OptionControlSP *friction_control = nullptr;
   OptionControlSP *deadzone_control = nullptr;
 };
 
