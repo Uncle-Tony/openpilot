@@ -15,6 +15,7 @@ public:
 
 private slots:
   void updateJSONParam();
+  void refreshLabels();
 
 private:
   QJsonObject loadJSONParam();
