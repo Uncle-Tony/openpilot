@@ -4,6 +4,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include "common/util.h"
+#include "common/params.h"
+#include "cereal/messaging/messaging.h"
 #include "selfdrive/ui/sunnypilot/qt/widgets/controls.h"
 
 TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
@@ -13,8 +15,29 @@ TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
 
   list = new ListWidget(this, false);
 
-  // Load or initialize JSON
+  // Load JSON - show custom values if set, otherwise show defaults from car interface or code defaults
   QJsonObject tuning_data = loadJSONParam();
+  bool has_custom_tuning = !params.get("LateralTuningParams").empty() && tuning_data.contains("kp");
+
+  // Defaults from configure_torque_tune (code defaults)
+  double default_kp = 1.0, default_ki = 0.3, default_friction = 0.07, default_deadzone = 0.0;
+
+  // Try to get defaults from car interface if car is installed
+  auto cp_bytes = params.get("CarParamsPersistent");
+  if (!has_custom_tuning && !cp_bytes.empty()) {
+    AlignedBuffer aligned_buf;
+    capnp::FlatArrayMessageReader cmsg(aligned_buf.align(cp_bytes.data(), cp_bytes.size()));
+    cereal::CarParams::Reader CP = cmsg.getRoot<cereal::CarParams>();
+
+    if (CP.getLateralTuning().which() == cereal::CarParams::LateralTuning::Which::TORQUE) {
+      auto torque = CP.getLateralTuning().getTorque();
+      default_kp = torque.getKp();
+      default_ki = torque.getKi();
+      default_friction = torque.getFriction();
+      default_deadzone = torque.getSteeringAngleDeadzoneDeg();
+    }
+  }
+  // If no car installed, use code defaults (so user can still see values)
 
   // Proportional Gain (kp) - use temp param, sync to/from JSON
   kp_control = new OptionControlSP(
@@ -29,10 +52,13 @@ TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
     true,       // scale_float
     false       // advancedControl
   );
-  // Set initial value from JSON
-  double kp_val = tuning_data.contains("kp") ? tuning_data["kp"].toDouble() : 1.50;
-  params.put("LateralTuningKpTemp", QString::number(kp_val, 'f', 2).toStdString());
-  QObject::connect(kp_control, &OptionControlSP::updateLabels, this, &TuningPanel::updateJSONParam);
+  // Always set a value (custom tuning, car defaults, or code defaults) so user can see it
+  if (has_custom_tuning && tuning_data.contains("kp")) {
+    params.put("LateralTuningKpTemp", QString::number(tuning_data["kp"].toDouble(), 'f', 2).toStdString());
+  } else {
+    params.put("LateralTuningKpTemp", QString::number(default_kp, 'f', 2).toStdString());
+  }
+  QObject::connect(kp_control, &OptionControlSP::updateLabels, this, &TuningPanel::refreshLabels);
   list->addItem(kp_control);
 
   list->addItem(vertical_space());
@@ -51,9 +77,13 @@ TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
     true,
     false
   );
-  double ki_val = tuning_data.contains("ki") ? tuning_data["ki"].toDouble() : 0.40;
-  params.put("LateralTuningKiTemp", QString::number(ki_val, 'f', 2).toStdString());
-  QObject::connect(ki_control, &OptionControlSP::updateLabels, this, &TuningPanel::updateJSONParam);
+  // Always set a value
+  if (has_custom_tuning && tuning_data.contains("ki")) {
+    params.put("LateralTuningKiTemp", QString::number(tuning_data["ki"].toDouble(), 'f', 2).toStdString());
+  } else {
+    params.put("LateralTuningKiTemp", QString::number(default_ki, 'f', 2).toStdString());
+  }
+  QObject::connect(ki_control, &OptionControlSP::updateLabels, this, &TuningPanel::refreshLabels);
   list->addItem(ki_control);
 
   list->addItem(vertical_space());
@@ -72,9 +102,13 @@ TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
     true,
     false
   );
-  double friction_val = tuning_data.contains("friction") ? tuning_data["friction"].toDouble() : 0.12;
-  params.put("LateralTuningFrictionTemp", QString::number(friction_val, 'f', 2).toStdString());
-  QObject::connect(friction_control, &OptionControlSP::updateLabels, this, &TuningPanel::updateJSONParam);
+  // Always set a value
+  if (has_custom_tuning && tuning_data.contains("friction")) {
+    params.put("LateralTuningFrictionTemp", QString::number(tuning_data["friction"].toDouble(), 'f', 2).toStdString());
+  } else {
+    params.put("LateralTuningFrictionTemp", QString::number(default_friction, 'f', 2).toStdString());
+  }
+  QObject::connect(friction_control, &OptionControlSP::updateLabels, this, &TuningPanel::refreshLabels);
   list->addItem(friction_control);
 
   list->addItem(vertical_space());
@@ -93,9 +127,13 @@ TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
     true,
     false
   );
-  double deadzone_val = tuning_data.contains("deadzone") ? tuning_data["deadzone"].toDouble() : 0.10;
-  params.put("LateralTuningDeadzoneTemp", QString::number(deadzone_val, 'f', 2).toStdString());
-  QObject::connect(deadzone_control, &OptionControlSP::updateLabels, this, &TuningPanel::updateJSONParam);
+  // Always set a value
+  if (has_custom_tuning && tuning_data.contains("deadzone")) {
+    params.put("LateralTuningDeadzoneTemp", QString::number(tuning_data["deadzone"].toDouble(), 'f', 2).toStdString());
+  } else {
+    params.put("LateralTuningDeadzoneTemp", QString::number(default_deadzone, 'f', 2).toStdString());
+  }
+  QObject::connect(deadzone_control, &OptionControlSP::updateLabels, this, &TuningPanel::refreshLabels);
   list->addItem(deadzone_control);
 
   main_layout->addWidget(list);
@@ -105,44 +143,75 @@ TuningPanel::TuningPanel(SettingsWindowSP *parent) : QFrame(parent) {
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->setContentsMargins(0, 0, 0, 0);
   layout->addWidget(scroller);
+
+  // Initial label update
+  refreshLabels();
 }
 
 QJsonObject TuningPanel::loadJSONParam() {
   QString json_str = QString::fromStdString(params.get("LateralTuningParams"));
   if (json_str.isEmpty()) {
-    // Return defaults if param doesn't exist
-    QJsonObject defaults;
-    defaults["kp"] = 1.50;
-    defaults["ki"] = 0.40;
-    defaults["friction"] = 0.12;
-    defaults["deadzone"] = 0.10;
-    return defaults;
+    // Return empty object if param doesn't exist (no custom tuning set)
+    return QJsonObject();
   }
 
   QJsonParseError error;
   QJsonDocument doc = QJsonDocument::fromJson(json_str.toUtf8(), &error);
   if (error.error != QJsonParseError::NoError || !doc.isObject()) {
-    // Invalid JSON - return defaults
-    QJsonObject defaults;
-    defaults["kp"] = 1.50;
-    defaults["ki"] = 0.40;
-    defaults["friction"] = 0.12;
-    defaults["deadzone"] = 0.10;
-    return defaults;
+    // Invalid JSON - return empty object
+    return QJsonObject();
   }
 
   return doc.object();
+}
+
+void TuningPanel::refreshLabels() {
+  // Update label text for each control and save to JSON
+  if (kp_control) {
+    double kp_val = QString::fromStdString(params.get("LateralTuningKpTemp")).toDouble();
+    kp_control->setLabel(QString::number(kp_val, 'f', 2));
+  }
+  if (ki_control) {
+    double ki_val = QString::fromStdString(params.get("LateralTuningKiTemp")).toDouble();
+    ki_control->setLabel(QString::number(ki_val, 'f', 2));
+  }
+  if (friction_control) {
+    double friction_val = QString::fromStdString(params.get("LateralTuningFrictionTemp")).toDouble();
+    friction_control->setLabel(QString::number(friction_val, 'f', 2));
+  }
+  if (deadzone_control) {
+    double deadzone_val = QString::fromStdString(params.get("LateralTuningDeadzoneTemp")).toDouble();
+    deadzone_control->setLabel(QString::number(deadzone_val, 'f', 2));
+  }
+
+  // Also update JSON param
+  updateJSONParam();
 }
 
 void TuningPanel::updateJSONParam() {
   // Load current JSON to preserve any other fields
   QJsonObject tuning_data = loadJSONParam();
 
-  // Update values from temp params (controls write to these)
-  tuning_data["kp"] = QString::fromStdString(params.get("LateralTuningKpTemp")).toDouble();
-  tuning_data["ki"] = QString::fromStdString(params.get("LateralTuningKiTemp")).toDouble();
-  tuning_data["friction"] = QString::fromStdString(params.get("LateralTuningFrictionTemp")).toDouble();
-  tuning_data["deadzone"] = QString::fromStdString(params.get("LateralTuningDeadzoneTemp")).toDouble();
+  // Get values from temp params (controls write to these)
+  // If param is empty, use 0 (will be ignored, but we need valid numbers)
+  QString kp_str = QString::fromStdString(params.get("LateralTuningKpTemp"));
+  QString ki_str = QString::fromStdString(params.get("LateralTuningKiTemp"));
+  QString friction_str = QString::fromStdString(params.get("LateralTuningFrictionTemp"));
+  QString deadzone_str = QString::fromStdString(params.get("LateralTuningDeadzoneTemp"));
+
+  // Only update if values are set (non-empty)
+  if (!kp_str.isEmpty()) {
+    tuning_data["kp"] = kp_str.toDouble();
+  }
+  if (!ki_str.isEmpty()) {
+    tuning_data["ki"] = ki_str.toDouble();
+  }
+  if (!friction_str.isEmpty()) {
+    tuning_data["friction"] = friction_str.toDouble();
+  }
+  if (!deadzone_str.isEmpty()) {
+    tuning_data["deadzone"] = deadzone_str.toDouble();
+  }
 
   // Save back to JSON param (matches BluePilot approach)
   QJsonDocument doc(tuning_data);
@@ -152,10 +221,29 @@ void TuningPanel::updateJSONParam() {
 void TuningPanel::showEvent(QShowEvent *event) {
   QFrame::showEvent(event);
   // Reload JSON when panel is shown and sync to temp params
+  // Only set values if custom tuning exists (don't show defaults)
   QJsonObject tuning_data = loadJSONParam();
-  params.put("LateralTuningKpTemp", QString::number(tuning_data.value("kp").toDouble(1.50), 'f', 2).toStdString());
-  params.put("LateralTuningKiTemp", QString::number(tuning_data.value("ki").toDouble(0.40), 'f', 2).toStdString());
-  params.put("LateralTuningFrictionTemp", QString::number(tuning_data.value("friction").toDouble(0.12), 'f', 2).toStdString());
-  params.put("LateralTuningDeadzoneTemp", QString::number(tuning_data.value("deadzone").toDouble(0.10), 'f', 2).toStdString());
+  bool has_custom_tuning = !params.get("LateralTuningParams").empty() && !tuning_data.isEmpty();
+
+  if (has_custom_tuning) {
+    if (tuning_data.contains("kp")) {
+      params.put("LateralTuningKpTemp", QString::number(tuning_data["kp"].toDouble(), 'f', 2).toStdString());
+    }
+    if (tuning_data.contains("ki")) {
+      params.put("LateralTuningKiTemp", QString::number(tuning_data["ki"].toDouble(), 'f', 2).toStdString());
+    }
+    if (tuning_data.contains("friction")) {
+      params.put("LateralTuningFrictionTemp", QString::number(tuning_data["friction"].toDouble(), 'f', 2).toStdString());
+    }
+    if (tuning_data.contains("deadzone")) {
+      params.put("LateralTuningDeadzoneTemp", QString::number(tuning_data["deadzone"].toDouble(), 'f', 2).toStdString());
+    }
+  } else {
+    // Clear temp params so controls show blank
+    params.remove("LateralTuningKpTemp");
+    params.remove("LateralTuningKiTemp");
+    params.remove("LateralTuningFrictionTemp");
+    params.remove("LateralTuningDeadzoneTemp");
+  }
 }
 
