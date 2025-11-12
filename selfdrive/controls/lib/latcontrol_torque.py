@@ -1,3 +1,4 @@
+import json
 import math
 import numpy as np
 
@@ -28,62 +29,66 @@ LOW_SPEED_Y = [15, 13, 10, 5]
 class LatControlTorque(LatControl):
   def __init__(self, CP, CP_SP, CI):
     super().__init__(CP, CP_SP, CI)
+    self.CP = CP  # Store to compare against original values
     self.torque_params = CP.lateralTuning.torque.as_builder()
     self.torque_from_lateral_accel = CI.torque_from_lateral_accel()
     self.lateral_accel_from_torque = CI.lateral_accel_from_torque()
-    
-    # Load custom tuning params from UI if available
+
+    # Load custom tuning params at initialization
     self._params = Params()
     self._load_custom_tuning_params()
-    
+
     self.pid = PIDController(self.torque_params.kp, self.torque_params.ki,
                              k_f=self.torque_params.kf)
     self.update_limits()
     self.steering_angle_deadzone_deg = self.torque_params.steeringAngleDeadzoneDeg
 
+    # Track param check frame counter (check every 300 frames when inactive, like BluePilot)
+    self._param_check_counter = 0
+    self._last_kp = self.torque_params.kp
+    self._last_ki = self.torque_params.ki
+    self._last_friction = self.torque_params.friction
+    self._last_deadzone = self.torque_params.steeringAngleDeadzoneDeg
+
     self.extension = LatControlTorqueExt(self, CP, CP_SP, CI)
-  
+
   def _load_custom_tuning_params(self):
-    """Load custom tuning parameters from params if they exist, with validation"""
-    # Check for custom kp (valid range: 0.5 to 3.0)
-    kp_str = self._params.get("LateralTuningKp")
-    if kp_str:
-      try:
-        kp_val = float(kp_str)
+    """Load custom tuning parameters from JSON param if it exists, with validation
+    Matches BluePilot's approach of storing all tuning params in a single JSON string"""
+    tuning_json_str = self._params.get("LateralTuningParams")
+    if not tuning_json_str:
+      return
+
+    try:
+      tuning_data = json.loads(tuning_json_str)
+
+      # Validate and apply kp (valid range: 0.5 to 3.0)
+      if "kp" in tuning_data:
+        kp_val = float(tuning_data["kp"])
         if 0.5 <= kp_val <= 3.0 and math.isfinite(kp_val):
           self.torque_params.kp = kp_val
-      except (ValueError, OverflowError):
-        pass
 
-    # Check for custom ki (valid range: 0.1 to 1.0)
-    ki_str = self._params.get("LateralTuningKi")
-    if ki_str:
-      try:
-        ki_val = float(ki_str)
+      # Validate and apply ki (valid range: 0.1 to 1.0)
+      if "ki" in tuning_data:
+        ki_val = float(tuning_data["ki"])
         if 0.1 <= ki_val <= 1.0 and math.isfinite(ki_val):
           self.torque_params.ki = ki_val
-      except (ValueError, OverflowError):
-        pass
 
-    # Check for custom friction (valid range: 0.05 to 0.3)
-    friction_str = self._params.get("LateralTuningFriction")
-    if friction_str:
-      try:
-        friction_val = float(friction_str)
+      # Validate and apply friction (valid range: 0.05 to 0.3)
+      if "friction" in tuning_data:
+        friction_val = float(tuning_data["friction"])
         if 0.05 <= friction_val <= 0.3 and math.isfinite(friction_val):
           self.torque_params.friction = friction_val
-      except (ValueError, OverflowError):
-        pass
 
-    # Check for custom deadzone (valid range: 0.0 to 0.5)
-    deadzone_str = self._params.get("LateralTuningDeadzone")
-    if deadzone_str:
-      try:
-        deadzone_val = float(deadzone_str)
+      # Validate and apply deadzone (valid range: 0.0 to 0.5)
+      if "deadzone" in tuning_data:
+        deadzone_val = float(tuning_data["deadzone"])
         if 0.0 <= deadzone_val <= 0.5 and math.isfinite(deadzone_val):
           self.torque_params.steeringAngleDeadzoneDeg = deadzone_val
-      except (ValueError, OverflowError):
-        pass
+
+    except (json.JSONDecodeError, ValueError, TypeError, KeyError):
+      # Invalid JSON or values - use defaults
+      pass
 
   def update_live_torque_params(self, latAccelFactor, latAccelOffset, friction):
     self.torque_params.latAccelFactor = latAccelFactor
@@ -96,38 +101,39 @@ class LatControlTorque(LatControl):
                         self.lateral_accel_from_torque(-self.steer_max, self.torque_params))
 
   def update(self, active, CS, VM, params, steer_limited_by_safety, desired_curvature, calibrated_pose, curvature_limited):
-    # CRITICAL: Only reload params when not active to prevent relay faults
-    # Changing PID gains while active can cause torque rate limit violations
+    # Check for JSON param updates when controls are inactive (matches BluePilot approach)
+    # Only update when not active to prevent relay faults from changing gains during active control
     if not active:
-      # Check for param changes (throttled to every 300 frames like SunnyPilot)
-      if not hasattr(self, '_param_check_counter'):
-        self._param_check_counter = 0
       self._param_check_counter += 1
-      
-      if self._param_check_counter >= 300:
-        old_kp = self.torque_params.kp
-        old_ki = self.torque_params.ki
-        old_friction = self.torque_params.friction
-        old_deadzone = self.torque_params.steeringAngleDeadzoneDeg
-        
+      if self._param_check_counter >= 300:  # Check every 300 frames (like BluePilot)
+        old_kp = self._last_kp
+        old_ki = self._last_ki
+        old_friction = self._last_friction
+        old_deadzone = self._last_deadzone
+
+        # Reload params from JSON
         self._load_custom_tuning_params()
-        
-        # If params changed, update PID and reset integrator to prevent inconsistent state
+
+        # If PID gains changed, update PID and reset integrator
         if (self.torque_params.kp != old_kp or self.torque_params.ki != old_ki):
-          # Update PID gains by modifying underlying _k_p and _k_i arrays
           self.pid._k_p = [[0], [self.torque_params.kp]]
           self.pid._k_i = [[0], [self.torque_params.ki]]
-          # Reset integrator when gains change to prevent inconsistent state
-          self.pid.reset()
-        
+          self.pid.reset()  # Reset integrator to prevent inconsistent state
+          self._last_kp = self.torque_params.kp
+          self._last_ki = self.torque_params.ki
+
+        # If friction changed, update limits
         if self.torque_params.friction != old_friction:
           self.update_limits()
-        
+          self._last_friction = self.torque_params.friction
+
+        # If deadzone changed, update it
         if self.torque_params.steeringAngleDeadzoneDeg != old_deadzone:
-          pass  # Deadzone doesn't require PID reset
-        
+          self.steering_angle_deadzone_deg = self.torque_params.steeringAngleDeadzoneDeg
+          self._last_deadzone = self.torque_params.steeringAngleDeadzoneDeg
+
         self._param_check_counter = 0
-    
+
     # Override torque params from extension
     if self.extension.update_override_torque_params(self.torque_params):
       self.update_limits()
