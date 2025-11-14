@@ -23,5 +23,15 @@
     "system/**",
     "third_party/**",
     "tools/**",
+  ],
+  "cursorpyright.analysis.exclude": [
+    "**/.git",
+    "**/.venv",
+    "**/__pycache__",
+    "common/**",
+    "selfdrive/**",
+    "system/**",
+    "third_party/**",
+    "tools/**"
   ]
 }
