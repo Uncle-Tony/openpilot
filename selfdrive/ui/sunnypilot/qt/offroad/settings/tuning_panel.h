@@ -20,7 +20,11 @@ private:
   Params params;
   ScrollViewSP *scroller = nullptr;
   ListWidget *list = nullptr;
-  OptionControlSP *kp_low_speed_control = nullptr;
-  OptionControlSP *kp_high_speed_control = nullptr;
+  OptionControlSP *kp_control = nullptr;
+  OptionControlSP *ki_control = nullptr;
+  OptionControlSP *deadzone_control = nullptr;
+  OptionControlSP *kf_control = nullptr;
+  OptionControlSP *latAccelFactor_control = nullptr;
+  OptionControlSP *latAccelOffset_control = nullptr;
 };
 
