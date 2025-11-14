@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QJsonObject>
 #include "selfdrive/ui/sunnypilot/qt/offroad/settings/settings.h"
 #include "selfdrive/ui/sunnypilot/qt/widgets/scrollview.h"
 
@@ -14,17 +13,13 @@ public:
   void showEvent(QShowEvent *event) override;
 
 private slots:
-  void updateJSONParam();
   void refreshLabels();
 
 private:
-  QJsonObject loadJSONParam();
 
   Params params;
   ScrollViewSP *scroller = nullptr;
   ListWidget *list = nullptr;
-  OptionControlSP *kp_control = nullptr;
-  OptionControlSP *ki_control = nullptr;
-  OptionControlSP *deadzone_control = nullptr;
+  OptionControlSP *kp_low_speed_control = nullptr;
+  OptionControlSP *kp_high_speed_control = nullptr;
 };
-
