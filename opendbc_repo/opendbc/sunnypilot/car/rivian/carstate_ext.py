@@ -93,10 +93,12 @@ class CarStateExt:
       if not ret.cruiseState.enabled:
         self.set_speed = ret.vEgoCluster
 
-      self.stalk_down = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"]) in (3, 4)
-      self.stalk_down_counter = self.stalk_down_counter + 1 if self.stalk_down else 0
+      # VDM_UserAdasRequest: 0=IDLE, 1=UP_1, 2=UP_2, 3=DOWN_1, 4=DOWN_2
+      stalk_down = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"]) in (3, 4)
+      self.stalk_down_counter = self.stalk_down_counter + 1 if stalk_down else 0
       if self.stalk_down_counter == 50:
-        self.set_speed = ret.vEgoCluster if self.set_speed < ret.vEgoCluster else self.set_speed
+        # Mimic Rivian ACC: holding stalk 0.5s sets speed to current speed (never decreases)
+        self.set_speed = max(self.set_speed, ret.vEgoCluster)
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
       ret.cruiseState.speed = self.set_speed
