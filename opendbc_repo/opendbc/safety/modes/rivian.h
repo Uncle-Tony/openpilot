@@ -107,6 +107,7 @@ static void rivian_rx_hook(const CANPacket_t *msg) {
 }
 
 static bool rivian_tx_hook(const CANPacket_t *msg) {
+  UNUSED(msg);
   // No longer validating steering or longitudinal messages - allowing stock messages through
   return true;
 }
