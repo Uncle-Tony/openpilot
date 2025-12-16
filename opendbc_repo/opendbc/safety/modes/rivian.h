@@ -107,60 +107,16 @@ static void rivian_rx_hook(const CANPacket_t *msg) {
 }
 
 static bool rivian_tx_hook(const CANPacket_t *msg) {
-  // Rivian utilizes more torque at low speed to maintain the same lateral accel
-  const TorqueSteeringLimits RIVIAN_STEERING_LIMITS = {
-    .max_torque = 350,
-    .dynamic_max_torque = true,
-    .max_torque_lookup = {
-      {9., 17., 17.},
-      {350, 250, 250},
-    },
-    .max_rate_up = 3,
-    .max_rate_down = 5,
-    .max_rt_delta = 125,
-    .driver_torque_multiplier = 2,
-    .driver_torque_allowance = 100,
-    .type = TorqueDriverLimited,
-  };
-
-  const LongitudinalLimits RIVIAN_LONG_LIMITS = {
-    .max_accel = 200,
-    .min_accel = -350,
-    .inactive_accel = 0,
-  };
-
-  bool tx = true;
-
-  if (msg->bus == 0U) {
-    // Steering control
-    if (msg->addr == 0x120U) {
-      int desired_torque = ((msg->data[2] << 3U) | (msg->data[3] >> 5U)) - 1024U;
-      bool steer_req = (msg->data[3] >> 4) & 1U;
-
-      if (steer_torque_cmd_checks(desired_torque, steer_req, RIVIAN_STEERING_LIMITS)) {
-        tx = false;
-      }
-    }
-
-    // Longitudinal control
-    if (msg->addr == 0x160U) {
-      int raw_accel = ((msg->data[2] << 3) | (msg->data[3] >> 5)) - 1024U;
-      if (longitudinal_accel_checks(raw_accel, RIVIAN_LONG_LIMITS)) {
-        tx = false;
-      }
-    }
-  }
-
-  return tx;
+  // No longer validating steering or longitudinal messages - allowing stock messages through
+  return true;
 }
 
 static safety_config rivian_init(uint16_t param) {
   // SCCM_WheelTouch: for hiding hold wheel alert
-  // VDM_AdasSts: for canceling stock ACC
-  // 0x120 = ACM_lkaHbaCmd, 0x321 = SCCM_WheelTouch, 0x162 = VDM_AdasSts
-  static const CanMsg RIVIAN_TX_MSGS[] = {{0x120, 0, 8, .check_relay = true}, {0x321, 2, 7, .check_relay = true}, {0x162, 2, 8, .check_relay = true}};
-  // 0x160 = ACM_longitudinalRequest
-  static const CanMsg RIVIAN_LONG_TX_MSGS[] = {{0x120, 0, 8, .check_relay = true}, {0x321, 2, 7, .check_relay = true}, {0x160, 0, 5, .check_relay = true}};
+  // Removed 0x120 (ACM_lkaHbaCmd) and 0x160/0x162 (longitudinal) to allow stock messages through
+  // 0x110 = ACM_SteeringControl (we modify only EAC enabled), 0x321 = SCCM_WheelTouch
+  static const CanMsg RIVIAN_TX_MSGS[] = {{0x110, 0, 8, .check_relay = true}, {0x321, 2, 7, .check_relay = true}};
+  static const CanMsg RIVIAN_LONG_TX_MSGS[] = {{0x110, 0, 8, .check_relay = true}, {0x321, 2, 7, .check_relay = true}};
 
   static RxCheck rivian_rx_checks[] = {
     {.msg = {{0x208, 0, 8, 50U, .max_counter = 14U}, { 0 }, { 0 }}},                                                             // ESP_Status (speed)

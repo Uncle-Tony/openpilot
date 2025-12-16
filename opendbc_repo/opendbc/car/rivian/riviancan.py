@@ -1,3 +1,6 @@
+import copy
+
+
 def checksum(data, poly, xor_output):
   crc = 0
   for byte in data:
@@ -9,6 +12,27 @@ def checksum(data, poly, xor_output):
         crc <<= 1
       crc &= 0xFF
   return crc ^ xor_output
+
+
+def e2e_profile1_crc8(data: bytearray) -> int:
+  """
+  AUTOSAR E2E Profile 1 CRC8 calculation
+  Uses polynomial 0x1D, initial value 0xFF, XOR output 0xFF
+  CRC is calculated over all data bytes (counter is already embedded in the data)
+  """
+  crc = 0xFF  # Initial value
+  poly = 0x1D  # Polynomial
+
+  # Process all data bytes (counter is already part of the data)
+  for byte in data:
+    crc ^= byte
+    for _ in range(8):
+      if crc & 0x80:
+        crc = ((crc << 1) ^ poly) & 0xFF
+      else:
+        crc = (crc << 1) & 0xFF
+
+  return crc ^ 0xFF  # XOR output
 
 
 def create_lka_steering(packer, frame, acm_lka_hba_cmd, apply_torque, enabled, active, mads):
@@ -41,6 +65,46 @@ def create_lka_steering(packer, frame, acm_lka_hba_cmd, apply_torque, enabled, a
   data = packer.make_can_msg("ACM_lkaHbaCmd", 0, values)[1]
   values["ACM_lkaHbaCmd_Checksum"] = checksum(data[1:], 0x1D, 0x63)
   return packer.make_can_msg("ACM_lkaHbaCmd", 0, values)
+
+
+def modify_steering_control(packer, frame, stock_msg, op_enabled):
+  """
+  Modify ACM_SteeringControl message (0x110 / 272 decimal)
+  - Passes through all fields from stock message unmodified
+  - Only sets ACM_EacEnabled = 1 when OP is enabled
+  - Updates counter and recalculates AUTOSAR E2E Profile 1 checksum
+  """
+  if stock_msg is None:
+    # If no stock message, create minimal message with EAC disabled
+    values = {
+      "ACM_SteeringControl_Counter": frame % 15,
+      "ACM_EacEnabled": 1 if op_enabled else 0,
+      "ACM_HapticRequired": 0,
+      "ACM_SteeringAngleRequest": 0.0,
+      "ACM_SteeringControl_Checksum": 0,
+    }
+  else:
+    # Copy all fields from stock message
+    values = copy.copy(stock_msg)
+    # Only modify EAC enabled when OP is enabled
+    if op_enabled:
+      values["ACM_EacEnabled"] = 1
+
+  # Update counter
+  values["ACM_SteeringControl_Counter"] = frame % 15
+
+  # Create message without checksum first
+  values["ACM_SteeringControl_Checksum"] = 0  # Placeholder
+  msg = packer.make_can_msg("ACM_SteeringControl", 0, values)
+  data = bytearray(msg[1])
+
+  # Calculate AUTOSAR E2E Profile 1 CRC8
+  # CRC is calculated over all data bytes except the checksum byte (byte 0)
+  # Counter is already embedded in byte 1, so it's included in the CRC
+  checksum_value = e2e_profile1_crc8(data[1:])
+
+  values["ACM_SteeringControl_Checksum"] = checksum_value
+  return packer.make_can_msg("ACM_SteeringControl", 0, values)
 
 
 def create_wheel_touch(packer, sccm_wheel_touch, enabled):
