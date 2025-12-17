@@ -34,8 +34,7 @@ class CarController(CarControllerBase, MadsCarController):
     # Removed: no longer sending ACM_lkaHbaCmd to allow stock messages through
 
     # Send ACM_SteeringControl only when OP is enabled: set EAC enabled, pass through all other fields from stock
-    if CC.enabled:
-      can_sends.append(modify_steering_control(self.packer, self.frame, CS.acm_steering_control, CC.enabled))
+    can_sends.append(modify_steering_control(self.packer, self.frame, CS.acm_steering_control, CC.enabled))
 
     if self.frame % 5 == 0:
       can_sends.append(create_wheel_touch(self.packer, CS.sccm_wheel_touch, CC.enabled))
