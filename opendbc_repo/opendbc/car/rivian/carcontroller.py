@@ -39,15 +39,14 @@ class CarController(CarControllerBase, MadsCarController):
                                                       CS.out.steeringTorque, CarControllerParams, steer_max)
 
     # >90 degree steering fault prevention
-    self.angle_limit_counter, apply_steer_req = common_fault_avoidance(abs(CS.out.steeringAngleDeg) >= MAX_ANGLE, CC.latActive,
-                                                                       self.angle_limit_counter, MAX_ANGLE_FRAMES,
-                                                                       MAX_ANGLE_CONSECUTIVE_FRAMES)
+    # Set the fault flag BEFORE reaching 90° to tell EPS we're aware of high angle
+    # and want to maintain control. Keep request bit active throughout.
+    torque_fault = abs(CS.out.steeringAngleDeg) >= MAX_ANGLE
+
+    apply_steer_req = CC.latActive  # Keep request bit on as long as lat is active
 
     if not CC.latActive:
       apply_torque = 0
-
-    # Hold torque with induced temporary fault when cutting the actuation bit
-    torque_fault = CC.latActive and not apply_steer_req
 
     # send steering command
     self.apply_torque_last = apply_torque
