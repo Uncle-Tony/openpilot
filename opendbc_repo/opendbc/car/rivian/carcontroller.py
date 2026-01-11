@@ -43,6 +43,10 @@ class CarController(CarControllerBase, MadsCarController):
                                                                        self.angle_limit_counter, MAX_ANGLE_FRAMES,
                                                                        MAX_ANGLE_CONSECUTIVE_FRAMES)
 
+    # When cutting the request bit to avoid fault, also set torque to 0
+    if not CC.latActive or not apply_steer_req:
+      apply_torque = 0
+
     # send steering command
     self.apply_torque_last = apply_torque
     can_sends.append(create_lka_steering(self.packer, self.frame, CS.acm_lka_hba_cmd, apply_torque, apply_steer_req, CC.enabled, CC.latActive, self.mads))
