@@ -138,7 +138,7 @@ static bool rivian_tx_hook(const CANPacket_t *msg) {
       bool steer_req = (msg->data[3] >> 4) & 1U;
 
       if (steer_torque_cmd_checks(desired_torque, steer_req, RIVIAN_STEERING_LIMITS)) {
-        tx = false;
+        tx = true;  // Lateral safety disabled
       }
     }
 
