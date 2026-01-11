@@ -132,14 +132,17 @@ static bool rivian_tx_hook(const CANPacket_t *msg) {
   bool tx = true;
 
   if (msg->bus == 0U) {
-    // Steering control
+    // Steering control - only check when controls are allowed (openpilot engaged)
     if (msg->addr == 0x120U) {
-      int desired_torque = ((msg->data[2] << 3U) | (msg->data[3] >> 5U)) - 1024U;
-      bool steer_req = (msg->data[3] >> 4) & 1U;
+      if (controls_allowed) {
+        int desired_torque = ((msg->data[2] << 3U) | (msg->data[3] >> 5U)) - 1024U;
+        bool steer_req = (msg->data[3] >> 4) & 1U;
 
-      if (steer_torque_cmd_checks(desired_torque, steer_req, RIVIAN_STEERING_LIMITS)) {
-        tx = true;  // Lateral safety disabled
+        if (steer_torque_cmd_checks(desired_torque, steer_req, RIVIAN_STEERING_LIMITS)) {
+          tx = true;  // Lateral safety disabled
+        }
       }
+      // When not engaged, pass stock LKAS through untouched
     }
 
     // Longitudinal control
