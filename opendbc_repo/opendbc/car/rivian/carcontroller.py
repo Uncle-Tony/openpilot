@@ -10,7 +10,7 @@ from opendbc.sunnypilot.car.rivian.mads import MadsCarController
 
 # EPS faults if you apply torque while the steering angle is above 90 degrees for more than 1 second
 # All slightly below EPS thresholds to avoid fault
-MAX_ANGLE = 85
+MAX_ANGLE = 80  # Start cycling earlier to prevent faults
 MAX_ANGLE_FRAMES = 89
 MAX_ANGLE_CONSECUTIVE_FRAMES = 2
 
