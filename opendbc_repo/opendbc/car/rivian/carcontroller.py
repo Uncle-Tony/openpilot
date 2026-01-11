@@ -10,8 +10,8 @@ from opendbc.sunnypilot.car.rivian.mads import MadsCarController
 
 # EPS faults if you apply torque while the steering angle is above 90 degrees for more than 1 second
 # All slightly below EPS thresholds to avoid fault
-MAX_ANGLE = 80  # Start cycling earlier to prevent faults
-MAX_ANGLE_FRAMES = 89
+MAX_ANGLE = 85  # degrees
+MAX_ANGLE_FRAMES = 50  # ~1 second at 50Hz - start cycling earlier than Hyundai
 MAX_ANGLE_CONSECUTIVE_FRAMES = 2
 
 
@@ -38,15 +38,16 @@ class CarController(CarControllerBase, MadsCarController):
       apply_torque = apply_driver_steer_torque_limits(new_torque, self.apply_torque_last,
                                                       CS.out.steeringTorque, CarControllerParams, steer_max)
 
-    # >90 degree steering fault prevention
-    # Set the fault flag BEFORE reaching 90° to tell EPS we're aware of high angle
-    # and want to maintain control. Keep request bit active throughout.
-    torque_fault = abs(CS.out.steeringAngleDeg) >= MAX_ANGLE
-
-    apply_steer_req = CC.latActive  # Keep request bit on as long as lat is active
+    # >90 degree steering fault prevention - same EPS as Hyundai
+    self.angle_limit_counter, apply_steer_req = common_fault_avoidance(abs(CS.out.steeringAngleDeg) >= MAX_ANGLE, CC.latActive,
+                                                                       self.angle_limit_counter, MAX_ANGLE_FRAMES,
+                                                                       MAX_ANGLE_CONSECUTIVE_FRAMES)
 
     if not CC.latActive:
       apply_torque = 0
+
+    # Set fault flag when cutting the request bit (same as Hyundai)
+    torque_fault = CC.latActive and not apply_steer_req
 
     # send steering command
     self.apply_torque_last = apply_torque
