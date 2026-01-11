@@ -43,9 +43,11 @@ class CarController(CarControllerBase, MadsCarController):
                                                                        self.angle_limit_counter, MAX_ANGLE_FRAMES,
                                                                        MAX_ANGLE_CONSECUTIVE_FRAMES)
 
-    # When cutting the request bit to avoid fault, also set torque to 0
-    if not CC.latActive or not apply_steer_req:
+    if not CC.latActive:
       apply_torque = 0
+
+    # Hold torque with induced temporary fault when cutting the actuation bit
+    torque_fault = CC.latActive and not apply_steer_req
 
     # send steering command
     self.apply_torque_last = apply_torque
