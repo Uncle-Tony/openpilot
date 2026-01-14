@@ -109,11 +109,11 @@ static void rivian_rx_hook(const CANPacket_t *msg) {
 static bool rivian_tx_hook(const CANPacket_t *msg) {
   // Rivian utilizes more torque at low speed to maintain the same lateral accel
   const TorqueSteeringLimits RIVIAN_STEERING_LIMITS = {
-    .max_torque = 350,
+    .max_torque = 450,
     .dynamic_max_torque = true,
     .max_torque_lookup = {
       {9., 17., 17.},
-      {350, 250, 250},
+      {450, 350, 350},
     },
     .max_rate_up = 3,
     .max_rate_down = 5,
@@ -139,7 +139,7 @@ static bool rivian_tx_hook(const CANPacket_t *msg) {
         bool steer_req = (msg->data[3] >> 4) & 1U;
 
         if (steer_torque_cmd_checks(desired_torque, steer_req, RIVIAN_STEERING_LIMITS)) {
-          tx = true;  // Lateral safety disabled
+          tx = false;  // Block message if safety checks fail
         }
       }
       // When not engaged, pass stock LKAS through untouched
