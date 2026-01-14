@@ -101,9 +101,33 @@ class CarState(CarStateBase, CarStateExt):
 
   @staticmethod
   def get_can_parsers(CP, CP_SP):
+    messages = [
+      # Bus 0 (powertrain)
+      ("ESP_Status", 50),
+      ("VDM_PropStatus", 50),
+      ("EPAS_AdasStatus", 100),
+      ("EPAS_SystemStatus", 100),
+      ("iBESP2", 50),
+      ("RCM_Status", 10),
+      ("SCCM_WheelTouch", 100),
+      ("VDM_AdasSts", 50),
+    ]
+    
+    cam_messages = [
+      ("ACM_lkaHbaCmd", 100),
+      ("ACM_Status", 100),
+      ("ACM_AebRequest", 50),
+    ]
+    
+    adas_messages = [
+      ("ACM_tsrCmd", 10),
+      ("Cluster", 10),
+      ("IndicatorLights", 10),
+    ]
+    
     return {
-      Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], [], 0),
-      Bus.adas: CANParser(DBC[CP.carFingerprint][Bus.pt], [], 1),
-      Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [], 2),
+      Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], messages, 0),
+      Bus.adas: CANParser(DBC[CP.carFingerprint][Bus.pt], adas_messages, 1),
+      Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], cam_messages, 2),
       **CarStateExt.get_parser(CP, CP_SP),
     }

@@ -13,12 +13,21 @@ def checksum(data, poly, xor_output):
 
 def create_lka_steering(packer, frame, acm_lka_hba_cmd, apply_torque, apply_steer_req, torque_fault, enabled, active, mads):
   # forward auto high beam and speed limit status and nothing else
-  values = {s: acm_lka_hba_cmd[s] for s in (
-    "ACM_hbaSysState",
-    "ACM_hbaLamp",
-    "ACM_hbaOnOffState",
-    "ACM_slifOnOffState",
-  )}
+  # Use defaults if stock message not available
+  if acm_lka_hba_cmd:
+    values = {s: acm_lka_hba_cmd[s] for s in (
+      "ACM_hbaSysState",
+      "ACM_hbaLamp",
+      "ACM_hbaOnOffState",
+      "ACM_slifOnOffState",
+    )}
+  else:
+    values = {
+      "ACM_hbaSysState": 0,
+      "ACM_hbaLamp": 0,
+      "ACM_hbaOnOffState": 0,
+      "ACM_slifOnOffState": 0,
+    }
 
   values |= {
     "ACM_lkaHbaCmd_Counter": frame % 15,
