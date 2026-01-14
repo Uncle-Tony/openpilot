@@ -33,7 +33,7 @@ def create_lka_steering(packer, frame, acm_lka_hba_cmd, apply_torque, apply_stee
     "ACM_lkaHbaCmd_Counter": frame % 15,
     "ACM_lkaStrToqReq": apply_torque,
     "ACM_lkaActToi": apply_steer_req and mads.lat_active,
-    "ACM_lkaToiFlt": 0,
+    "ACM_lkaToiFlt": torque_fault,  # allows actuation when cutting request bit
 
     "ACM_lkaLaneRecogState": 3 if mads.lka_icon_states else 0,
     "ACM_lkaSymbolState": 3 if mads.lka_icon_states else 0,
