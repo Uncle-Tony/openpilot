@@ -112,19 +112,19 @@ class CarState(CarStateBase, CarStateExt):
       ("SCCM_WheelTouch", 100),
       ("VDM_AdasSts", 50),
     ]
-    
+
     cam_messages = [
       ("ACM_lkaHbaCmd", 100),
       ("ACM_Status", 100),
       ("ACM_AebRequest", 50),
     ]
-    
+
     adas_messages = [
       ("ACM_tsrCmd", 10),
       ("Cluster", 10),
       ("IndicatorLights", 10),
     ]
-    
+
     return {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], messages, 0),
       Bus.adas: CANParser(DBC[CP.carFingerprint][Bus.pt], adas_messages, 1),
