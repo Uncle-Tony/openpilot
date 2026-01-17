@@ -61,8 +61,8 @@ class TestRivianSafetyBase(common.PandaCarSafetyTest, common.DriverTorqueSteerin
     return self._user_gas_msg(0, speed, quality_flag)
 
   def _user_brake_msg(self, brake):
-    values = {"iBESP2_BrakePedalApplied": brake}
-    return self.packer.make_can_msg_panda("iBESP2", 0, values)
+    values = {"iB_BrakePedalApplied": brake}
+    return self.packer.make_can_msg_panda("ESP_AebFb", 0, values)
 
   def _user_gas_msg(self, gas, speed=0, quality_flag=True):
     values = {"VDM_AcceleratorPedalPosition": gas, "VDM_VehicleSpeed": speed * 3.6,
