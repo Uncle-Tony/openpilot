@@ -49,7 +49,7 @@ class CarState(CarStateBase, CarStateExt):
     # Cruise state
     speed = min(int(cp_cam.vl["ACM_tsrCmd"]["ACM_tsrSpdDisClsMain"]), 85)
     self.last_speed = speed if speed != 0 else self.last_speed
-    ret.cruiseState.enabled = cp_cam.vl["ACM_Status"]["ACM_FeatureStatus"] == 1
+    ret.cruiseState.enabled = cp_adas.vl["ACM_Status"]["ACM_FeatureStatus"] == 1
     # TODO: find cruise set speed on CAN
     ret.cruiseState.speed = self.last_speed * CV.MPH_TO_MS  # detected speed limit
     if not self.CP.openpilotLongitudinalControl:
@@ -62,7 +62,7 @@ class CarState(CarStateBase, CarStateExt):
     # 2. something (message from another ECU) ACM relies on is faulty
     #  * ACM_FaultStatus will stay 0 since ACM itself isn't faulted
     # TODO: ACM_FaultStatus hasn't been seen high yet, but log anyway
-    ret.accFaulted = cp_cam.vl["ACM_Status"]["ACM_FaultStatus"] == 1
+    ret.accFaulted = cp_adas.vl["ACM_Status"]["ACM_FaultStatus"] == 1
                       # VDM_AdasSts not available on this tap, removed VDM_AdasFaultStatus check
 
     # Gear
@@ -83,7 +83,7 @@ class CarState(CarStateBase, CarStateExt):
     # ret.rightBlindspot = False
 
     # AEB
-    ret.stockAeb = cp_cam.vl["ACM_AebRequest"]["ACM_EnableRequest"] != 0
+    ret.stockAeb = cp_adas.vl["ACM_AebRequest"]["ACM_EnableRequest"] != 0
 
     # Messages needed by carcontroller
     self.acm_lka_hba_cmd = copy.copy(cp_cam.vl["ACM_lkaHbaCmd"])

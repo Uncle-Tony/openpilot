@@ -72,7 +72,7 @@ class TestRivianSafetyBase(common.PandaCarSafetyTest, common.DriverTorqueSteerin
 
   def _pcm_status_msg(self, enable):
     values = {"ACM_FeatureStatus": enable, "ACM_Unkown1": 1}
-    return self.packer.make_can_msg_panda("ACM_Status", 2, values)
+    return self.packer.make_can_msg_panda("ACM_Status", 1, values)
 
   def _accel_msg(self, accel: float):
     values = {"ACM_AccelerationRequest": accel}
