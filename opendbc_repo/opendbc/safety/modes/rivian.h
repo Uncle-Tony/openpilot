@@ -86,9 +86,9 @@ static void rivian_rx_hook(const CANPacket_t *msg) {
       update_sample(&torque_driver, torque_driver_new);
     }
 
-    // Brake pressed
-    if (msg->addr == 0x38fU) {
-      brake_pressed = (msg->data[2] >> 7) & 1U;
+    // Brake pressed - using ESP_AebFb (0x102) instead of iBESP2 (0x38f)
+    if (msg->addr == 0x102U) {
+      brake_pressed = (msg->data[1] >> 7) & 1U;  // iB_BrakePedalApplied at bit 15 (byte 1, bit 7)
     }
 
     // VDM_AdasSts (0x162) not available on this tap - MADS button detection removed
@@ -161,7 +161,7 @@ static safety_config rivian_init(uint16_t param) {
     {.msg = {{0x208, 0, 8, 50U, .max_counter = 14U}, { 0 }, { 0 }}},                                                             // ESP_Status (speed)
     {.msg = {{0x150, 0, 7, 50U, .max_counter = 14U}, { 0 }, { 0 }}},                                                             // VDM_PropStatus (gas pedal & 2nd speed)
     {.msg = {{0x380, 0, 5, 100U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},  // EPAS_SystemStatus (driver torque)
-    {.msg = {{0x38f, 0, 6, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},   // iBESP2 (brakes)
+    {.msg = {{0x102, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},   // ESP_AebFb (brakes)
     {.msg = {{0x100, 2, 8, 100U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},  // ACM_Status (cruise state)
   };
 
