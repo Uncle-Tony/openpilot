@@ -94,7 +94,7 @@ static void rivian_rx_hook(const CANPacket_t *msg) {
     // VDM_AdasSts (0x162) not available on this tap - MADS button detection removed
   }
 
-  if (msg->bus == 2U) {
+  if (msg->bus == 1U) {
     // Cruise state
     if (msg->addr == 0x100U) {
       const int feature_status = msg->data[2] >> 5U;
@@ -162,7 +162,7 @@ static safety_config rivian_init(uint16_t param) {
     {.msg = {{0x150, 0, 7, 50U, .max_counter = 14U}, { 0 }, { 0 }}},                                                             // VDM_PropStatus (gas pedal & 2nd speed)
     {.msg = {{0x380, 0, 5, 100U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},  // EPAS_SystemStatus (driver torque)
     {.msg = {{0x102, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},   // ESP_AebFb (brakes)
-    {.msg = {{0x100, 2, 8, 100U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},  // ACM_Status (cruise state)
+    {.msg = {{0x100, 1, 8, 100U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},  // ACM_Status (cruise state)
   };
 
   bool rivian_longitudinal = false;
