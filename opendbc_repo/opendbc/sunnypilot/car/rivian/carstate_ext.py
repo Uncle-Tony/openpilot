@@ -41,13 +41,9 @@ class CarStateExt:
     self.vdm_user_adas_request = 0
 
   def update_stalk_controls(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> list:
-      cp = can_parsers[Bus.pt]
-      vdm_user_adas_request = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"])
-
-      button_events = create_button_events(vdm_user_adas_request, self.vdm_user_adas_request, VDM_BUTTON_MAP)
-      self.vdm_user_adas_request = vdm_user_adas_request
-
-      return button_events
+      # VDM_AdasSts not available on this tap - MADS button detection disabled
+      # Return empty button events list
+      return []
 
   def update_longitudinal_upgrade(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> list:
     cp_park = can_parsers[Bus.alt]
@@ -93,10 +89,9 @@ class CarStateExt:
       if not ret.cruiseState.enabled:
         self.set_speed = ret.vEgoCluster
 
-      self.stalk_down = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"]) in (3, 4)
-      self.stalk_down_counter = self.stalk_down_counter + 1 if self.stalk_down else 0
-      if self.stalk_down_counter == 50:
-        self.set_speed = ret.vEgoCluster if self.set_speed < ret.vEgoCluster else self.set_speed
+      # VDM_AdasSts not available on this tap - stalk down detection disabled
+      self.stalk_down = False
+      self.stalk_down_counter = 0
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
       ret.cruiseState.speed = self.set_speed
