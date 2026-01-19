@@ -3,7 +3,7 @@ from opendbc.can import CANPacker
 from opendbc.car import Bus
 from opendbc.car.lateral import apply_driver_steer_torque_limits, apply_std_steer_angle_limits
 from opendbc.car.interfaces import CarControllerBase
-from opendbc.car.rivian.riviancan import create_wheel_touch, modify_steering_control
+from opendbc.car.rivian.riviancan import create_wheel_touch, modify_steering_control, create_lka_steering
 from opendbc.car.rivian.values import CarControllerParams
 
 from opendbc.sunnypilot.car.rivian.mads import MadsCarController
@@ -32,7 +32,6 @@ class CarController(CarControllerBase, MadsCarController):
 
     # send steering command
     self.apply_torque_last = apply_torque
-    # Removed: no longer sending ACM_lkaHbaCmd to allow stock messages through
 
     # Send ACM_SteeringControl with openpilot's desired steering angle
     # For angle control, actuators.steeringAngleDeg is populated by the lateral controller
@@ -40,6 +39,9 @@ class CarController(CarControllerBase, MadsCarController):
     self.apply_angle_last = apply_std_steer_angle_limits(actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgoRaw,
                                                           CS.out.steeringAngleDeg, CC.latActive, CarControllerParams.ANGLE_LIMITS)
     can_sends.append(modify_steering_control(self.packer, self.frame, self.apply_angle_last, CC.enabled))
+
+    # Send ACM_lkaHbaCmd with ACM_lkaSymbolState = 2 (sent together with 0x110)
+    can_sends.append(create_lka_steering(self.packer, self.frame, CS.acm_lka_hba_cmd, apply_torque, CC.enabled, CC.latActive, self.mads))
 
     if self.frame % 5 == 0:
       can_sends.append(create_wheel_touch(self.packer, CS.sccm_wheel_touch, CC.enabled))

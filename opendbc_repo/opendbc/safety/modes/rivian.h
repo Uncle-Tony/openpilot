@@ -114,10 +114,9 @@ static bool rivian_tx_hook(const CANPacket_t *msg) {
 
 static safety_config rivian_init(uint16_t param) {
   // SCCM_WheelTouch: for hiding hold wheel alert
-  // Removed 0x120 (ACM_lkaHbaCmd) and 0x160/0x162 (longitudinal) to allow stock messages through
-  // 0x110 = ACM_SteeringControl (we modify only EAC enabled), 0x321 = SCCM_WheelTouch
-  static const CanMsg RIVIAN_TX_MSGS[] = {{0x110, 0, 8, .check_relay = true}, {0x321, 2, 7, .check_relay = true}};
-  static const CanMsg RIVIAN_LONG_TX_MSGS[] = {{0x110, 0, 8, .check_relay = true}, {0x321, 2, 7, .check_relay = true}};
+  // 0x110 = ACM_SteeringControl (we modify only EAC enabled), 0x120 = ACM_lkaHbaCmd, 0x321 = SCCM_WheelTouch
+  static const CanMsg RIVIAN_TX_MSGS[] = {{0x110, 0, 8, .check_relay = true}, {0x120, 0, 8, .check_relay = true}, {0x321, 2, 7, .check_relay = true}};
+  static const CanMsg RIVIAN_LONG_TX_MSGS[] = {{0x110, 0, 8, .check_relay = true}, {0x120, 0, 8, .check_relay = true}, {0x321, 2, 7, .check_relay = true}};
 
   static RxCheck rivian_rx_checks[] = {
     {.msg = {{0x208, 0, 8, 50U, .max_counter = 14U}, { 0 }, { 0 }}},                                                             // ESP_Status (speed)

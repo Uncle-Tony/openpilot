@@ -23,10 +23,10 @@ def create_lka_steering(packer, frame, acm_lka_hba_cmd, apply_torque, enabled, a
   values |= {
     "ACM_lkaHbaCmd_Counter": frame % 15,
     "ACM_lkaStrToqReq": apply_torque,
-    "ACM_lkaActToi": mads.lat_active,
+    "ACM_lkaActToi": 0,
 
     "ACM_lkaLaneRecogState": 3 if mads.lka_icon_states else 0,
-    "ACM_lkaSymbolState": 3 if mads.lka_icon_states else 0,
+    "ACM_lkaSymbolState": 2,
 
     # static values
     "ACM_lkaElkRequest": 0,
