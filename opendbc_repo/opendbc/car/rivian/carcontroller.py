@@ -34,6 +34,7 @@ class CarController(CarControllerBase, MadsCarController):
     # Removed: no longer sending ACM_lkaHbaCmd to allow stock messages through
 
     # Send ACM_SteeringControl with openpilot's desired steering angle
+    # For angle control, actuators.steeringAngleDeg is populated by the lateral controller
     can_sends.append(modify_steering_control(self.packer, self.frame, actuators.steeringAngleDeg, CC.enabled))
 
     if self.frame % 5 == 0:
