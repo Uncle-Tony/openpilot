@@ -5,6 +5,7 @@ from opendbc.car import Bus, CarSpecs, DbcDict, PlatformConfig, Platforms, struc
 from opendbc.car.docs_definitions import CarHarness, CarDocs, CarParts, Device
 from opendbc.car.fw_query_definitions import FwQueryConfig, Request, StdQueries, p16
 from opendbc.car.vin import Vin
+from opendbc.car.lateral import AngleSteeringLimits
 
 
 class WMI(StrEnum):
@@ -124,6 +125,13 @@ class CarControllerParams:
   STEER_DRIVER_ALLOWANCE = 100  # allowed driver torque before start limiting
   STEER_DRIVER_MULTIPLIER = 2  # weight driver torque
   STEER_DRIVER_FACTOR = 100
+
+  # Angle control limits
+  ANGLE_LIMITS: AngleSteeringLimits = AngleSteeringLimits(
+    360,  # max angle in degrees
+    ([0., 5., 25.], [2.5, 1.5, 0.2]),  # rate up lookup
+    ([0., 5., 25.], [5., 2., 0.3]),  # rate down lookup
+  )
 
   ACCEL_MIN = -3.5  # m/s^2
   ACCEL_MAX = 2.0  # m/s^2

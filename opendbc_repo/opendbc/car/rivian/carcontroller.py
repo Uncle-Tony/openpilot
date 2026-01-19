@@ -1,7 +1,7 @@
 import numpy as np
 from opendbc.can import CANPacker
 from opendbc.car import Bus
-from opendbc.car.lateral import apply_driver_steer_torque_limits
+from opendbc.car.lateral import apply_driver_steer_torque_limits, apply_std_steer_angle_limits
 from opendbc.car.interfaces import CarControllerBase
 from opendbc.car.rivian.riviancan import create_wheel_touch, modify_steering_control
 from opendbc.car.rivian.values import CarControllerParams
@@ -14,6 +14,7 @@ class CarController(CarControllerBase, MadsCarController):
     CarControllerBase.__init__(self, dbc_names, CP, CP_SP)
     MadsCarController.__init__(self)
     self.apply_torque_last = 0
+    self.last_angle = 0.0
     self.packer = CANPacker(dbc_names[Bus.pt])
 
   def update(self, CC, CC_SP, CS, now_nanos):
@@ -35,7 +36,15 @@ class CarController(CarControllerBase, MadsCarController):
 
     # Send ACM_SteeringControl with openpilot's desired steering angle
     # For angle control, actuators.steeringAngleDeg is populated by the lateral controller
-    can_sends.append(modify_steering_control(self.packer, self.frame, actuators.steeringAngleDeg, CC.enabled))
+    # Apply angle limits for safety
+    if CC.enabled and self.mads.lat_active:
+      apply_angle = apply_std_steer_angle_limits(actuators.steeringAngleDeg, self.last_angle, CS.out.vEgoRaw,
+                                                  CS.out.steeringAngleDeg, self.mads.lat_active, CarControllerParams.ANGLE_LIMITS)
+      self.last_angle = apply_angle
+    else:
+      apply_angle = 0.0
+      self.last_angle = CS.out.steeringAngleDeg
+    can_sends.append(modify_steering_control(self.packer, self.frame, apply_angle, CC.enabled))
 
     if self.frame % 5 == 0:
       can_sends.append(create_wheel_touch(self.packer, CS.sccm_wheel_touch, CC.enabled))
