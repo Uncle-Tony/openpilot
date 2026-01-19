@@ -13,6 +13,7 @@ class CarController(CarControllerBase, MadsCarController):
   def __init__(self, dbc_names, CP, CP_SP):
     CarControllerBase.__init__(self, dbc_names, CP, CP_SP)
     MadsCarController.__init__(self)
+    self.params = CarControllerParams(CP)
     self.apply_torque_last = 0
     self.last_angle = 0.0
     self.packer = CANPacker(dbc_names[Bus.pt])
@@ -39,7 +40,7 @@ class CarController(CarControllerBase, MadsCarController):
     # Apply angle limits for safety
     if CC.enabled and self.mads.lat_active:
       apply_angle = apply_std_steer_angle_limits(actuators.steeringAngleDeg, self.last_angle, CS.out.vEgoRaw,
-                                                  CS.out.steeringAngleDeg, self.mads.lat_active, CarControllerParams.ANGLE_LIMITS)
+                                                  CS.out.steeringAngleDeg, self.mads.lat_active, self.params.ANGLE_LIMITS)
       self.last_angle = apply_angle
     else:
       apply_angle = 0.0
