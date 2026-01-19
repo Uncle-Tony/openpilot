@@ -1,6 +1,3 @@
-import copy
-
-
 def checksum(data, poly, xor_output):
   crc = 0
   for byte in data:
@@ -46,35 +43,22 @@ def create_lka_steering(packer, frame, acm_lka_hba_cmd, apply_torque, enabled, a
   return packer.make_can_msg("ACM_lkaHbaCmd", 0, values)
 
 
-def modify_steering_control(packer, frame, stock_msg, op_enabled):
+def modify_steering_control(packer, frame, steering_angle_deg, op_enabled):
   """
-  Modify ACM_SteeringControl message (0x110 / 272 decimal)
-  - Passes through all fields from stock message unmodified
-  - Only sets ACM_EacEnabled = 1 when OP is enabled
+  Create ACM_SteeringControl message (0x110 / 272 decimal)
+  - Sets ACM_EacEnabled = 1 when OP is enabled
+  - Uses openpilot's desired steering angle
   - Updates counter and recalculates AUTOSAR E2E Profile 1 checksum
   """
-  if stock_msg is None:
-    # If no stock message, create minimal message with EAC disabled
-    values = {
-      "ACM_SteeringControl_Counter": 0,
-      "ACM_EacEnabled": 1 if op_enabled else 0,
-      "ACM_HapticRequired": 0,
-      "ACM_SteeringAngleRequest": 0.0,
-      "ACM_SteeringControl_Checksum": 0,
-    }
-  else:
-    # Copy all fields from stock message
-    values = copy.copy(stock_msg)
-    # Only modify EAC enabled when OP is enabled
-    if op_enabled:
-      values["ACM_EacEnabled"] = 1
-
-  # Update counter
-  values["ACM_SteeringControl_Counter"] = frame % 15
+  values = {
+    "ACM_SteeringControl_Counter": frame % 15,
+    "ACM_EacEnabled": 1 if op_enabled else 0,
+    "ACM_HapticRequired": 0,
+    "ACM_SteeringAngleRequest": steering_angle_deg,
+    "ACM_SteeringControl_Checksum": 0,  # Placeholder
+  }
 
   # Create message without checksum first
-  values["ACM_SteeringControl_Checksum"] = 0  # Placeholder
-
   data = packer.make_can_msg("ACM_SteeringControl", 0, values)[1]
   values["ACM_SteeringControl_Checksum"] = checksum(data[1:], 0x1D, 0x41)
   return packer.make_can_msg("ACM_SteeringControl", 0, values)

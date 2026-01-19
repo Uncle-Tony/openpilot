@@ -33,8 +33,8 @@ class CarController(CarControllerBase, MadsCarController):
     self.apply_torque_last = apply_torque
     # Removed: no longer sending ACM_lkaHbaCmd to allow stock messages through
 
-    # Send ACM_SteeringControl only when OP is enabled: set EAC enabled, pass through all other fields from stock
-    can_sends.append(modify_steering_control(self.packer, self.frame, CS.acm_steering_control, CC.enabled))
+    # Send ACM_SteeringControl with openpilot's desired steering angle
+    can_sends.append(modify_steering_control(self.packer, self.frame, actuators.steeringAngleDeg, CC.enabled))
 
     if self.frame % 5 == 0:
       can_sends.append(create_wheel_touch(self.packer, CS.sccm_wheel_touch, CC.enabled))

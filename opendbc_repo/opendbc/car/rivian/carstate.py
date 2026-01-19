@@ -18,7 +18,6 @@ class CarState(CarStateBase, CarStateExt):
     self.acm_lka_hba_cmd = None
     self.sccm_wheel_touch = None
     self.vdm_adas_status = None
-    self.acm_steering_control = None
 
   def update(self, can_parsers) -> tuple[structs.CarState, structs.CarStateSP]:
     cp = can_parsers[Bus.pt]
@@ -95,11 +94,6 @@ class CarState(CarStateBase, CarStateExt):
     self.acm_lka_hba_cmd = copy.copy(cp_cam.vl["ACM_lkaHbaCmd"])
     self.sccm_wheel_touch = copy.copy(cp.vl["SCCM_WheelTouch"])
     self.vdm_adas_status = copy.copy(cp.vl["VDM_AdasSts"])
-    # Read ACM_SteeringControl from bus 0 (pt bus)
-    if "ACM_SteeringControl" in cp.vl:
-      self.acm_steering_control = copy.copy(cp.vl["ACM_SteeringControl"])
-    else:
-      self.acm_steering_control = None
 
     CarStateExt.update(self, ret, can_parsers)
 
