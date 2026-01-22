@@ -27,7 +27,7 @@ class TestRivianSafetyBase(common.PandaCarSafetyTest, common.DriverTorqueSteerin
 
   TX_MSGS = [[0x120, 0], [0x321, 2], [0x162, 2]]
   RELAY_MALFUNCTION_ADDRS = {0: (0x120,), 2: (0x321, 0x162)}
-  FWD_BLACKLISTED_ADDRS = {0: [0x321, 0x162], 2: [0x120]}
+  FWD_BLACKLISTED_ADDRS = {0: [0x321, 0x162], 1: [0x100], 2: [0x120]}
 
   MAX_TORQUE_LOOKUP = [9, 17], [350, 250]
   DYNAMIC_MAX_TORQUE = True
