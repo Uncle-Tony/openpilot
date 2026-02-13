@@ -5,7 +5,7 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 import math
-from enum import StrEnum, IntEnum
+from enum import StrEnum
 
 from opendbc.car import Bus, create_button_events, structs
 from opendbc.can.parser import CANParser
@@ -33,7 +33,6 @@ class CarStateExt:
     self.set_speed = 10
     self.increase_button = False
     self.decrease_button = False
-    self.stalk_down = False
     self.distance_button = 0
     self.increase_counter = 0
     self.decrease_counter = 0
