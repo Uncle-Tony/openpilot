@@ -113,11 +113,11 @@ class CarControllerParams:
   # conservatively to reach a maximum of 3.0 m/s^2 turning left at 80 mph
 
   # These refer to turning left:
-  # 250 is ~2.8 m/s^2 above 17 m/s, then linearly ramps to ~1.6 m/s^2 from 17 m/s to 9 m/s
+  # 350 maintained at all speeds to reach ~3.0 m/s^2 lateral accel at 80 mph
   # TODO: it is theorized older models have different steering racks and achieve down to half the
   #  lateral acceleration referenced here at all speeds. detect this and ship a torque increase for those models
-  STEER_MAX = 250  # 350 is intended to maintain lateral accel, not increase it
-  STEER_MAX_LOOKUP = [9, 17], [350, 250]
+  STEER_MAX = 350
+  STEER_MAX_LOOKUP = [9, 17], [350, 350]
   STEER_STEP = 1
   STEER_DELTA_UP = 3  # torque increase per refresh
   STEER_DELTA_DOWN = 5  # torque decrease per refresh
