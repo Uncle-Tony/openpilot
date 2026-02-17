@@ -93,9 +93,7 @@ class MadsSettingsLayout(Widget):
     if not brand:
       brand = ui_state.CP.brand if ui_state.CP else ""
 
-    if brand == "rivian":
-      return True
-    elif brand == "tesla":
+    if brand == "tesla":
       return not (ui_state.CP_SP and ui_state.CP_SP.flags & TeslaFlagsSP.HAS_VEHICLE_BUS)
     return False
 
