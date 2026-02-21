@@ -7,7 +7,6 @@ See the LICENSE.md file in the root directory for more details.
 from collections.abc import Callable
 import pyray as rl
 
-from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.sunnypilot.widgets.list_view import option_item_sp
 from openpilot.system.ui.widgets.network import NavButton
@@ -27,7 +26,7 @@ class TuningLayout(Widget):
 
   def _initialize_items(self):
     self._kp_low_speed = option_item_sp(
-      title=lambda: tr("Kp Low Speed"),
+      title=lambda: tr("Kp Low Speed (0–15 mph)"),
       param="KpLowSpeed",
       description=lambda: tr("Proportional gain multiplier at low speeds (6.7 m/s). Used in custom error calculation."),
       min_value=50,
@@ -37,7 +36,7 @@ class TuningLayout(Widget):
       use_float_scaling=True,
     )
     self._kp_mid_speed = option_item_sp(
-      title=lambda: tr("Kp Mid Speed"),
+      title=lambda: tr("Kp Mid Speed (15–75 mph)"),
       param="KpMidSpeed",
       description=lambda: tr("Proportional gain multiplier at mid speeds (15 m/s). Used in custom error calculation."),
       min_value=50,
@@ -47,7 +46,7 @@ class TuningLayout(Widget):
       use_float_scaling=True,
     )
     self._kp_high_speed = option_item_sp(
-      title=lambda: tr("Kp High Speed"),
+      title=lambda: tr("Kp High Speed (75+ mph)"),
       param="KpHighSpeed",
       description=lambda: tr("Proportional gain multiplier at high speeds (33.5 m/s). Used in custom error calculation."),
       min_value=50,
@@ -60,9 +59,10 @@ class TuningLayout(Widget):
 
   def _update_state(self):
     super()._update_state()
-    self._kp_low_speed.action_item.set_enabled(ui_state.is_offroad())
-    self._kp_mid_speed.action_item.set_enabled(ui_state.is_offroad())
-    self._kp_high_speed.action_item.set_enabled(ui_state.is_offroad())
+    # Tuning menu is functional on road; controller picks up params ~every 6 s
+    self._kp_low_speed.action_item.set_enabled(True)
+    self._kp_mid_speed.action_item.set_enabled(True)
+    self._kp_high_speed.action_item.set_enabled(True)
 
   def _render(self, rect):
     self._back_button.set_position(self._rect.x, self._rect.y + 20)
