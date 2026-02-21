@@ -13,12 +13,14 @@ if gui_app.big_ui():
   PROGRESS_BAR_WIDTH = 1000
   PROGRESS_BAR_HEIGHT = 20
   TEXTURE_SIZE = 360
+  LOGO_SIZE = 450  # boot logo larger than spinner ring
   WRAPPED_SPACING = 50
   CENTERED_SPACING = 150
 else:
   PROGRESS_BAR_WIDTH = 268
   PROGRESS_BAR_HEIGHT = 10
   TEXTURE_SIZE = 140
+  LOGO_SIZE = 175
   WRAPPED_SPACING = 10
   CENTERED_SPACING = 20
 DEGREES_PER_SECOND = 360.0  # one full rotation per second
@@ -35,7 +37,7 @@ def clamp(value, min_value, max_value):
 class Spinner(Widget):
   def __init__(self):
     super().__init__()
-    self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/boot_logo.png", TEXTURE_SIZE, TEXTURE_SIZE)
+    self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/boot_logo.png", LOGO_SIZE, LOGO_SIZE)
     self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)
     self._rotation = 0.0
     self._progress: int | None = None
@@ -63,16 +65,16 @@ class Spinner(Widget):
 
     center = rl.Vector2(rect.width / 2.0, center_y)
     spinner_origin = rl.Vector2(TEXTURE_SIZE / 2.0, TEXTURE_SIZE / 2.0)
-    comma_position = rl.Vector2(center.x - TEXTURE_SIZE / 2.0, center.y - TEXTURE_SIZE / 2.0)
+    comma_position = rl.Vector2(center.x - LOGO_SIZE / 2.0, center.y - LOGO_SIZE / 2.0)
 
     delta_time = rl.get_frame_time()
     self._rotation = (self._rotation + DEGREES_PER_SECOND * delta_time) % 360.0
 
-    # Draw rotating spinner and static comma logo
+    # Draw static logo first, then spinner ring on top
+    rl.draw_texture_v(self._comma_texture, comma_position, rl.WHITE)
     rl.draw_texture_pro(self._spinner_texture, rl.Rectangle(0, 0, TEXTURE_SIZE, TEXTURE_SIZE),
                         rl.Rectangle(center.x, center.y, TEXTURE_SIZE, TEXTURE_SIZE),
                         spinner_origin, self._rotation, rl.WHITE)
-    rl.draw_texture_v(self._comma_texture, comma_position, rl.WHITE)
 
     # Display the progress bar or text based on user input
     if self._progress is not None:
