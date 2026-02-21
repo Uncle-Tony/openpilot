@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 import pyray as rl
 import select
 import sys
@@ -34,36 +33,13 @@ def clamp(value, min_value, max_value):
 
 
 class Spinner(Widget):
-  _DEFAULT_LOGO_PATH = "../../sunnypilot/selfdrive/assets/images/boot_logo.png"
-
   def __init__(self):
     super().__init__()
-    self._comma_texture = self._load_boot_logo()
+    self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/boot_logo.png", TEXTURE_SIZE, TEXTURE_SIZE)
     self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)
     self._rotation = 0.0
     self._progress: int | None = None
     self._wrapped_lines: list[str] = []
-
-  def _load_boot_logo(self) -> rl.Texture:
-    """Load boot logo: use CustomBootLogoPath if set and file exists, else default (Adventure Pilot) logo."""
-    custom_path = ""
-    try:
-      from openpilot.common.params import Params
-      custom_path = (Params().get("CustomBootLogoPath") or "").strip()
-    except Exception:
-      pass
-    if custom_path and os.path.isfile(custom_path):
-      try:
-        image = rl.load_image(custom_path)
-        rl.image_resize(image, TEXTURE_SIZE, TEXTURE_SIZE)
-        texture = rl.load_texture_from_image(image)
-        rl.unload_image(image)
-        rl.set_texture_filter(texture, rl.TextureFilter.TEXTURE_FILTER_BILINEAR)
-        rl.set_texture_wrap(texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
-        return texture
-      except Exception:
-        pass
-    return gui_app.texture(self._DEFAULT_LOGO_PATH, TEXTURE_SIZE, TEXTURE_SIZE)
 
   def set_text(self, text: str) -> None:
     if text.isdigit():
