@@ -273,4 +273,5 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"KpLowSpeed", {PERSISTENT | BACKUP, FLOAT, "1.0"}},
     {"KpMidSpeed", {PERSISTENT | BACKUP, FLOAT, "1.0"}},
     {"KpHighSpeed", {PERSISTENT | BACKUP, FLOAT, "1.0"}},
+    {"CustomBootLogoPath", {PERSISTENT, STRING, ""}},
 };
