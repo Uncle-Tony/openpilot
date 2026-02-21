@@ -44,7 +44,21 @@ class OptionControlSP(ItemAction):
           self.current_value = int(key)
           break
     else:
-      self.current_value = int(self.params.get(self.param_key, return_default=True))
+      raw = self.params.get(self.param_key, return_default=True)
+      if self.use_float_scaling and raw not in (None, ""):
+        try:
+          self.current_value = int(round(float(raw) * 100))
+          self.current_value = max(self.min_value, min(self.max_value, self.current_value))
+        except (TypeError, ValueError):
+          self.current_value = self.min_value
+      elif raw not in (None, ""):
+        try:
+          self.current_value = int(raw)
+          self.current_value = max(self.min_value, min(self.max_value, self.current_value))
+        except (TypeError, ValueError):
+          self.current_value = self.min_value
+      else:
+        self.current_value = self.min_value
 
     # Initialize font and button styles
     self._font = gui_app.font(FontWeight.MEDIUM)

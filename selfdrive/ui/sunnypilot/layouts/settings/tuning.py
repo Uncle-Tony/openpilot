@@ -16,7 +16,7 @@ from openpilot.system.ui.widgets import Widget
 
 
 class TuningLayout(Widget):
-  """Tuning panel: Kp Low Speed / Kp High Speed (matches 2a00dafc0 Qt tuning panel)."""
+  """Tuning panel: Kp Low / Mid / High Speed (speed gates 6.7 / 15 / 33.5 m/s)."""
 
   def __init__(self, back_btn_callback: Callable):
     super().__init__()
@@ -36,6 +36,16 @@ class TuningLayout(Widget):
       label_callback=(lambda x: f"{x / 100:.2f}"),
       use_float_scaling=True,
     )
+    self._kp_mid_speed = option_item_sp(
+      title=lambda: tr("Kp Mid Speed"),
+      param="KpMidSpeed",
+      description=lambda: tr("Proportional gain multiplier at mid speeds (15 m/s). Used in custom error calculation."),
+      min_value=50,
+      max_value=500,
+      value_change_step=5,
+      label_callback=(lambda x: f"{x / 100:.2f}"),
+      use_float_scaling=True,
+    )
     self._kp_high_speed = option_item_sp(
       title=lambda: tr("Kp High Speed"),
       param="KpHighSpeed",
@@ -46,11 +56,12 @@ class TuningLayout(Widget):
       label_callback=(lambda x: f"{x / 100:.2f}"),
       use_float_scaling=True,
     )
-    return [self._kp_low_speed, self._kp_high_speed]
+    return [self._kp_low_speed, self._kp_mid_speed, self._kp_high_speed]
 
   def _update_state(self):
     super()._update_state()
     self._kp_low_speed.action_item.set_enabled(ui_state.is_offroad())
+    self._kp_mid_speed.action_item.set_enabled(ui_state.is_offroad())
     self._kp_high_speed.action_item.set_enabled(ui_state.is_offroad())
 
   def _render(self, rect):

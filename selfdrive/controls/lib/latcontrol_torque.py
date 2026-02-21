@@ -49,12 +49,14 @@ class LatControlTorque(LatControl):
     self.lookahead_frames = int(JERK_LOOKAHEAD_SECONDS / self.dt)
     self.jerk_filter = FirstOrderFilter(0.0, 1 / (2 * np.pi * LP_FILTER_CUTOFF_HZ), self.dt)
 
-    # UI-configurable Kp tuning (Tuning menu: KpLowSpeed / KpHighSpeed)
+    # UI-configurable Kp tuning (Tuning menu: KpLowSpeed / KpMidSpeed / KpHighSpeed)
     self._params = Params()
     self.kp_low_speed = float(self._params.get("KpLowSpeed") or "1.0")
+    self.kp_mid_speed = float(self._params.get("KpMidSpeed") or "1.0")
     self.kp_high_speed = float(self._params.get("KpHighSpeed") or "1.0")
     self._param_update_frame = 0
     self.kp_low_speed_lim = 6.7   # m/s
+    self.kp_mid_speed_lim = 15.0  # m/s
     self.kp_high_speed_lim = 33.5  # m/s
 
     self.extension = LatControlTorqueExt(self, CP, CP_SP, CI)
@@ -79,6 +81,7 @@ class LatControlTorque(LatControl):
     if self._param_update_frame % 300 == 0:
       try:
         self.kp_low_speed = float(self._params.get("KpLowSpeed") or "1.0")
+        self.kp_mid_speed = float(self._params.get("KpMidSpeed") or "1.0")
         self.kp_high_speed = float(self._params.get("KpHighSpeed") or "1.0")
       except (TypeError, ValueError):
         pass
@@ -112,8 +115,9 @@ class LatControlTorque(LatControl):
       output_torque = 0.0
       pid_log.active = False
     else:
-      # Kp scaling from Tuning menu (interpolate by speed)
-      kp_working = np.interp(CS.vEgo, [self.kp_low_speed_lim, self.kp_high_speed_lim], [self.kp_low_speed, self.kp_high_speed])
+      # Kp scaling from Tuning menu (interpolate by speed: low / mid / high gates)
+      kp_working = np.interp(CS.vEgo, [self.kp_low_speed_lim, self.kp_mid_speed_lim, self.kp_high_speed_lim],
+                            [self.kp_low_speed, self.kp_mid_speed, self.kp_high_speed])
       # do error correction in lateral acceleration space, convert at end to handle non-linear torque responses correctly
       pid_log.error = float(error * kp_working)
 
